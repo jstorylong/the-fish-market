@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Fish Market</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ocean: #1c3d3a;
+      --ocean-mid: #2d6b5e;
+      --teal-light: #e4f0ec;
+      --sand: #f7f2ea;
+      --sand-dark: #ede4d0;
+      --text: #1a1a18;
+      --text-muted: #5a6660;
+      --white: #ffffff;
+      --border: rgba(28,61,58,0.15);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--sand); color: var(--text); }
+
+    .header {
+      background: var(--ocean);
+      padding: 2rem 1.5rem 2.5rem;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .header-texture {
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 50%);
+    }
+    .header-scallop {
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 32px;
+      background: var(--sand); clip-path: ellipse(52% 100% at 50% 100%);
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem; color: #fff;
+      font-weight: 500; font-style: italic;
+      letter-spacing: -0.3px; position: relative;
+    }
+    .header p {
+      color: rgba(255,255,255,0.62); font-size: 0.85rem;
+      margin-top: 0.4rem; font-weight: 300; letter-spacing: 0.5px; position: relative;
+    }
+
+    .status-bar {
+      background: var(--teal-light);
+      border-bottom: 1px solid rgba(28,61,82,0.1);
+      padding: 0.65rem 1.5rem;
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.75rem; font-size: 0.8rem; color: var(--ocean-mid); flex-wrap: wrap;
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #3aaa7a; display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .status-pill {
+      background: rgba(28,61,58,0.08); border: 1px solid rgba(28,61,58,0.15);
+      padding: 0.15rem 0.65rem; border-radius: 20px;
+      font-weight: 500; font-size: 0.75rem; color: var(--ocean);
+    }
+
+    .main { max-width: 620px; margin: 0 auto; padding: 1.75rem 1.25rem 3rem; }
+
+    .section-label {
+      font-size: 0.7rem; font-weight: 500; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.85rem;
+    }
+
+    .loading-msg {
+      text-align: center; padding: 2rem;
+      color: var(--text-muted); font-size: 0.9rem;
+    }
+
+    .no-catch {
+      text-align: center; padding: 2rem;
+      color: var(--text-muted); font-size: 0.9rem;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .no-catch strong { display: block; font-size: 1rem; color: var(--ocean); margin-bottom: 0.4rem; }
+
+    .fish-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem; }
+
+    .fish-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1rem 1.1rem;
+      cursor: pointer; transition: border-color 0.15s; position: relative;
+    }
+    .fish-card:hover:not(.sold-out) { border-color: var(--ocean-mid); }
+    .fish-card.selected { border-color: var(--ocean-mid); background: var(--teal-light); }
+    .fish-card.sold-out { opacity: 0.45; cursor: default; }
+    .sold-badge {
+      position: absolute; top: 0.75rem; right: 0.75rem;
+      background: var(--sand-dark); color: var(--text-muted);
+      font-size: 0.65rem; font-weight: 500; letter-spacing: 0.5px;
+      text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 6px;
+    }
+    .fish-icon-wrap {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--teal-light);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.6rem;
+    }
+    .fish-card.selected .fish-icon-wrap { background: rgba(28,61,58,0.12); }
+    .fish-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 500; color: var(--ocean); }
+    .fish-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .fish-price { font-size: 0.9rem; font-weight: 500; color: var(--ocean-mid); margin-top: 0.5rem; }
+
+    .qty-row { display: none; align-items: center; gap: 0.5rem; margin-top: 0.65rem; }
+    .fish-card.selected .qty-row { display: flex; }
+    .qty-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid rgba(28,61,58,0.3); background: var(--white);
+      color: var(--ocean); font-size: 1.1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 500; line-height: 1;
+    }
+    .qty-btn:hover { background: var(--sand-dark); }
+    .qty-num { font-size: 0.9rem; font-weight: 500; min-width: 16px; text-align: center; color: var(--ocean); }
+
+    .form-section {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;
+    }
+    .form-section h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem; font-weight: 500; font-style: italic;
+      color: var(--ocean); margin-bottom: 1rem;
+    }
+    .field { margin-bottom: 0.85rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.3rem; }
+    .field input {
+      width: 100%; padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+      background: var(--sand); color: var(--text); outline: none;
+    }
+    .field input:focus { border-color: var(--ocean-mid); background: var(--white); }
+
+    .pickup-windows { margin-bottom: 0.85rem; }
+    .pickup-windows > span { display: block; font-size: 0.78rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .window-label {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.75rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--sand);
+      margin-bottom: 0.4rem; cursor: pointer; transition: border-color 0.12s;
+    }
+    .window-label:hover { border-color: var(--ocean-mid); }
+    .window-label input[type=radio] { accent-color: var(--ocean); width: 14px; height: 14px; flex-shrink: 0; }
+    .window-label span { font-size: 0.85rem; color: var(--text); }
+
+    .prep-toggle { display: flex; gap: 0.5rem; }
+    .prep-btn {
+      flex: 1; padding: 0.5rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--sand);
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; color: var(--text-muted); font-weight: 400; transition: all 0.12s;
+    }
+    .prep-btn.active { background: var(--ocean); color: var(--sand); border-color: var(--ocean); }
+    .prep-btn:not(.active):hover { border-color: var(--ocean-mid); color: var(--ocean); }
+
+    .submit-btn {
+      width: 100%; padding: 0.9rem;
+      background: var(--ocean); color: var(--sand);
+      border: none; border-radius: 12px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem; font-style: italic;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .submit-btn:hover { background: var(--ocean-mid); }
+    .submit-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .success-msg {
+      display: none; text-align: center;
+      background: var(--teal-light); border: 1px solid rgba(28,61,58,0.2);
+      border-radius: 14px; padding: 2rem 1.5rem; margin-bottom: 1rem;
+    }
+    .success-msg h3 {
+      font-family: 'Playfair Display', serif; font-style: italic;
+      color: var(--ocean); font-size: 1.2rem; margin-bottom: 0.5rem;
+    }
+    .success-msg p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+    .error-msg {
+      display: none; text-align: center;
+      background: #fdf2f0; border: 1px solid rgba(180,60,30,0.2);
+      border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem;
+      font-size: 0.82rem; color: #8a3020;
+    }
+
+    .footer-note {
+      text-align: center; font-size: 0.75rem;
+      color: var(--text-muted); margin-top: 1rem; line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-texture"></div>
+  <h1>The Fish Market</h1>
+  <p>From the fisher's hands to yours — as fresh as it gets</p>
+  <div class="header-scallop"></div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <span class="dot"></span>
+  <span id="statusText">Loading today's catch...</span>
+</div>
+
+<div class="main">
+  <div id="catchSection">
+    <p class="section-label">Today's catch</p>
+    <div id="loadingMsg" class="loading-msg">Checking what's available...</div>
+    <div id="fishGrid" class="fish-grid" style="display:none;"></div>
+    <div id="noCatch" class="no-catch" style="display:none;">
+      <strong>Nothing available right now</strong>
+      Check back soon — Brendan heads out early.
+    </div>
+  </div>
+
+  <div id="orderForm" style="display:none;">
+    <div class="form-section">
+      <h3>Your order details</h3>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="customerName" placeholder="First name is fine" />
+      </div>
+
+      <div class="pickup-windows">
+        <span>Pick your pickup window</span>
+        <div id="pickupWindows"></div>
+      </div>
+
+      <div class="field">
+        <label>Preparation</label>
+        <div class="prep-toggle">
+          <button class="prep-btn active" onclick="setPrep(this)">Whole fish</button>
+          <button class="prep-btn" onclick="setPrep(this)">Filleted</button>
+          <button class="prep-btn" onclick="setPrep(this)">Either works</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Anything else? (optional)</label>
+        <input type="text" id="notes" placeholder="e.g. specific cut or size preference" />
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg">
+      <h3>Order received!</h3>
+      <p>You'll get a text confirmation with the exact pickup location and time.<br>Thank you for supporting your local fisheries!</p>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">Place my order →</button>
+  </div>
+
+  <p class="footer-note">Pickup is at the dock · You'll get a text confirmation with location<br>Thanks for supporting your local fisheries!</p>
+</div>
+
+<script>
+  // !! REPLACE THIS with your deployed Google Apps Script URL !!
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0F0K10J_6bcQcama36S5ePTfprdy9WDhBsz74GJcVi33v_GFU-mWe4QUGWt0k0Wuj/exec';
+
+  const fishIcon = `<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+    <path d="M4 14 C4 14 2 10 2 7 C5 7 8 9 10 11 L18 11 C21 11 24 12 26 14 C24 16 21 17 18 17 L10 17 C8 19 5 21 2 21 C2 18 4 14 4 14Z" fill="#2d6b5e" opacity="0.85"/>
+    <circle cx="21" cy="13" r="1.2" fill="#e4f0ec"/>
+    <path d="M10 11 L10 17" stroke="#1c3d3a" stroke-width="0.8" opacity="0.3"/>
+    <path d="M13 11 L13 17" stroke="#1c3d3a" stroke-width="0.8" opacity="0.2"/>
+  </svg>`;
+
+  let inventory = [];
+  let quantities = {};
+  let selectedPrep = 'Whole fish';
+
+  async function loadInventory() {
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=getInventory`);
+      const data = await res.json();
+      inventory = data.inventory || [];
+      const windows = data.pickupWindows || [];
+      const deadline = data.orderDeadline || '';
+
+      document.getElementById('loadingMsg').style.display = 'none';
+
+      if (deadline) {
+        document.getElementById('statusText').textContent = `Order by ${deadline}`;
+      } else {
+        document.getElementById('statusText').textContent = 'Catch available now';
+      }
+
+      if (inventory.length === 0) {
+        document.getElementById('noCatch').style.display = 'block';
+        return;
+      }
+
+      renderFishGrid();
+      renderPickupWindows(windows);
+      document.getElementById('fishGrid').style.display = 'grid';
+      document.getElementById('orderForm').style.display = 'block';
+
+    } catch (e) {
+      document.getElementById('loadingMsg').textContent = 'Could not load inventory. Please refresh.';
+    }
+  }
+
+  function renderFishGrid() {
+    const grid = document.getElementById('fishGrid');
+    grid.innerHTML = '';
+    inventory.forEach((fish, i) => {
+      quantities[i] = 1;
+      const soldOut = fish.available <= 0;
+      const card = document.createElement('div');
+      card.className = 'fish-card' + (soldOut ? ' sold-out' : '');
+      card.innerHTML = `
+        ${soldOut ? '<span class="sold-badge">Sold out</span>' : ''}
+        <div class="fish-icon-wrap">${fishIcon}</div>
+        <div class="fish-name">${fish.species}</div>
+        <div class="fish-meta">~${fish.lbs} lbs · ${fish.available} available</div>
+        <div class="fish-price">$${fish.price} / lb</div>
+        <div class="qty-row">
+          <button class="qty-btn" data-idx="${i}" data-delta="-1" onclick="changeQty(event)">−</button>
+          <span class="qty-num" id="qty-${i}">1</span>
+          <button class="qty-btn" data-idx="${i}" data-delta="1" onclick="changeQty(event)">+</button>
+        </div>
+      `;
+      if (!soldOut) card.addEventListener('click', () => card.classList.toggle('selected'));
+      grid.appendChild(card);
+    });
+  }
+
+  function renderPickupWindows(windows) {
+    const container = document.getElementById('pickupWindows');
+    container.innerHTML = '';
+    if (windows.length === 0) return;
+    windows.forEach((w, i) => {
+      const label = document.createElement('label');
+      label.className = 'window-label';
+      label.innerHTML = `
+        <input type="radio" name="pickup" value="${w}" ${i === 0 ? 'checked' : ''} />
+        <span>${w}</span>
+      `;
+      container.appendChild(label);
+    });
+  }
+
+  function changeQty(e) {
+    e.stopPropagation();
+    const idx = parseInt(e.currentTarget.dataset.idx);
+    const delta = parseInt(e.currentTarget.dataset.delta);
+    const max = inventory[idx].available;
+    quantities[idx] = Math.min(max, Math.max(1, quantities[idx] + delta));
+    document.getElementById('qty-' + idx).textContent = quantities[idx];
+  }
+
+  function setPrep(btn) {
+    btn.closest('.prep-toggle').querySelectorAll('.prep-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPrep = btn.textContent;
+  }
+
+  async function submitOrder() {
+    const name = document.getElementById('customerName').value.trim();
+    if (!name) { showError('Please enter your name.'); return; }
+
+    const selectedCards = document.querySelectorAll('.fish-card.selected');
+    if (selectedCards.length === 0) { showError('Please select at least one fish.'); return; }
+
+    const pickupInput = document.querySelector('input[name="pickup"]:checked');
+    if (!pickupInput) { showError('Please select a pickup window.'); return; }
+
+    const items = [];
+    selectedCards.forEach(card => {
+      const idx = Array.from(card.parentElement.children).indexOf(card);
+      items.push({ species: inventory[idx].species, qty: quantities[idx], pricePerLb: inventory[idx].price, lbs: inventory[idx].lbs });
+    });
+
+    const order = {
+      action: 'submitOrder',
+      name,
+      pickup: pickupInput.value,
+      prep: selectedPrep,
+      notes: document.getElementById('notes').value.trim(),
+      items,
+      timestamp: new Date().toISOString()
+    };
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Placing order...';
+    hideError();
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(order)
+      });
+      document.getElementById('successMsg').style.display = 'block';
+      document.getElementById('submitBtn').style.display = 'none';
+      document.querySelectorAll('.fish-card.selected').forEach(c => c.classList.remove('selected'));
+    } catch (e) {
+      showError('Something went wrong. Please try again or text us directly.');
+      btn.disabled = false;
+      btn.textContent = 'Place my order →';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  loadInventory();
+</script>
+</body>
+</html>
