@@ -255,7 +255,7 @@
     <div class="error-msg" id="errorMsg"></div>
     <div class="success-msg" id="successMsg">
       <h3>Order received!</h3>
-      <p>You'll get a text confirmation with the exact pickup location and time.<br>Thank you for supporting your local fisheries!</p>
+      <p>You'll get a text confirmation with the exact pickup location and time.<br>Thank you!</p>
     </div>
 
     <button class="submit-btn" id="submitBtn" onclick="submitOrder()">Place my order →</button>
@@ -314,7 +314,7 @@
     const grid = document.getElementById('fishGrid');
     grid.innerHTML = '';
     inventory.forEach((fish, i) => {
-      quantities[i] = 1;
+      quantities[i] = 0;
       const soldOut = fish.available <= 0;
       const card = document.createElement('div');
       card.className = 'fish-card' + (soldOut ? ' sold-out' : '');
